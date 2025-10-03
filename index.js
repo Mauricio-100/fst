@@ -7,7 +7,8 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 // --- Imports LangChain ---
-import { HuggingFaceInference } from '@langchain/community/llms/huggingface';
+// NOUVELLE LIGNE (CORRECTE)
+import { HuggingFaceInference } from '@langchain-community/llms/huggingface';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { DuckgingoSearch } from '@langchain/community/tools/duckduckgo_search';
 import { StringOutputParser } from '@langchain/core/output_parsers';
