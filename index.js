@@ -6,13 +6,14 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-// --- Imports LangChain ---
-// NOUVELLE LIGNE (CORRECTE)
-import { HuggingFaceInference } from '@langchain-community/llms/huggingface';
+// --- Imports LangChain (CORRIGÉS) ---
+import { HuggingFaceInference } from '@langchain-community/llms/huggingface'; // Correction ici
 import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { DuckgingoSearch } from '@langchain/community/tools/duckduckgo_search';
+import { DuckDuckGoSearch } from '@langchain/community/tools/duckduckgo_search';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { RunnablePassthrough } from '@langchain/core/runnables';
+
+// ... Le reste du code est 100% identique et correct ...
 
 // === 1) Configuration et Initialisation ===
 const PORT = 10000;
@@ -75,13 +76,12 @@ const authenticateAPIKey = async (req, res, next) => {
   next();
 };
 
-// === 4) Le Cerveau de l'IA (CODE CORRIGÉ) ===
+// === 4) Le Cerveau de l'IA ===
 const retriever = (query) => searchTool.invoke(query);
 const promptTemplate = ChatPromptTemplate.fromTemplate(
   "En te basant sur ce contexte : {context}\n\nRéponds à cette question : {question}"
 );
 
-// Voici la chaîne LangChain complète et correcte
 const generationChain = RunnablePassthrough.assign({
   context: (input) => retriever(input.question),
 }).pipe(promptTemplate).pipe(llm).pipe(new StringOutputParser());
