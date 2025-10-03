@@ -5,6 +5,7 @@ import cors from 'cors';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import fs from 'fs'; // --- NOUVEL IMPORT POUR LIRE LE FICHIER CERTIFICAT ---
 
 // --- NOUVEL IMPORT HUGGING FACE ---
 import { HfInference } from '@huggingface/inference';
@@ -18,9 +19,26 @@ const PORT = 10000;
 const hf = new HfInference(process.env.HUGGINGFACEHUB_API_TOKEN);
 const searchTool = new DuckDuckGoSearch({ maxResults: 5 });
 
-// ... (Toutes les fonctions de Base de Données et de Sécurité restent identiques) ...
+// ... (Fonctions de Sécurité restent identiques) ...
 let dbConnection;
-async function getDbConnection() { if (dbConnection) return dbConnection; dbConnection = await mysql.createConnection(process.env.DATABASE_URL); return dbConnection; }
+// --- FONCTION DE CONNEXION MODIFIÉE POUR UTILISER LE SSL ---
+async function getDbConnection() {
+  if (dbConnection) return dbConnection;
+
+  // On lit le certificat SSL fourni par l'hébergeur de la base de données
+  const ca = fs.readFileSync('cert/ca.pem', 'utf-8');
+
+  // On se connecte en utilisant l'URL de la base de données ET le certificat
+  dbConnection = await mysql.createConnection({
+    uri: process.env.DATABASE_URL,
+    ssl: {
+      ca: ca
+    }
+  });
+
+  return dbConnection;
+}
+
 async function initDb() { const conn = await getDbConnection(); await conn.execute(`CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(255) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, api_token VARCHAR(255) UNIQUE)`); await conn.execute(`CREATE TABLE IF NOT EXISTS memory (id INT AUTO_INCREMENT PRIMARY KEY, question TEXT NOT NULL, answer TEXT NOT NULL)`); console.log('Tables "users" et "memory" initialisées.'); }
 async function searchMemory(question) { const conn = await getDbConnection(); const [rows] = await conn.execute('SELECT answer FROM memory WHERE question = ?', [question]); return rows.length > 0 ? rows[0].answer : null; }
 async function addToMemory(question, answer) { const conn = await getDbConnection(); await conn.execute('INSERT INTO memory (question, answer) VALUES (?, ?)', [question, answer]); }
@@ -75,10 +93,15 @@ app.post('/ask', authenticateAPIKey, async (req, res) => { const { question } = 
 
 // === 6) Démarrage du Serveur ===
 async function startServer() {
-  await initDb();
-  app.listen(PORT, () => {
-    console.log(`\n>>> Serveur Node.js FINAL prêt ! Écoute sur le port ${PORT} <<<`);
-  });
+  try {
+    await initDb();
+    app.listen(PORT, () => {
+      console.log(`\n>>> Serveur Node.js FINAL prêt ! Écoute sur le port ${PORT} <<<`);
+    });
+  } catch (error) {
+    console.error("ERREUR FATALE AU DÉMARRAGE :", error);
+    process.exit(1); // Arrête le processus si la connexion DB échoue
+  }
 }
 
 startServer();
