@@ -11,9 +11,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@huggingface/inference": "^2.7.0",
     "@langchain/community": "^0.2.19",
     "@langchain/core": "^0.2.11",
-    "@langchain-community/llms-huggingface": "^0.0.1",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
